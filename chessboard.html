@@ -1,0 +1,1465 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title>CHESS GAME</title>
+    <style media="screen">
+      div.board div.row{
+        display: grid;
+        grid-template-columns: repeat(8, 75px);
+        grid-template-rows: 75px;
+        justify-content: center;
+      }
+      div.board div.row div.cell{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+      }
+      div.board{
+        transform: rotate(45deg, 30deg);
+        border-color: 5px solid red;
+      }
+      div.pawn-promotion{
+        position: absolute;
+        width: 30%;
+        /* border: 2px solid red; */
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: black;
+        color: white;
+        display: none;
+      }
+      div.pawn-promotion ul{
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+      }
+      div.pawn-promotion ul li{
+        padding: 5px;
+      }
+      div.pawn-promotion ul li:hover{
+        background-color: grey;
+      }
+      div.test-image{
+         width: 50px;
+         height: 50px;
+         border: 2px solid green;
+         margin-top: 100px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="text-align: center" class="head-text">White Turn</h1>
+    <div class="board">
+
+    </div>
+    <div class="pawn-promotion">
+      <ul>
+        <li>Pawn</li>
+        <li>Queen</li>
+        <li>Rook</li>
+        <li>Bishop</li>
+        <li>Knight</li>
+      </ul>
+    </div>
+
+    <!-- <div class="test-image">
+
+    </div> -->
+
+    <script type="text/javascript">
+    // let testImg = document.querySelector("div.test-image")
+    // let test = document.createElement("img")
+    // test.setAttribute("src", "pieceImages/WK.jpeg")
+    // test.setAttribute("width", "20")
+    // test.setAttribute("height", "20")
+    // testImg.appendChild(test)
+    let headText = document.querySelector("h1.head-text")
+    let promotionOptions = document.querySelectorAll("div.pawn-promotion ul li")
+    let promotionPrompt = document.querySelector("div.pawn-promotion")
+    for (let prind=0; prind<promotionOptions.length; prind++){
+      promotionOptions[prind].onclick = function(event){
+        // console.log(this.textContent)
+
+      }
+    }
+    class Piece{
+      constructor(name, color){
+          this.color = color
+          this.name = name
+      }
+      getAbbr(){
+        let acol = this.color === "white" ? "W": "B"
+        let apie = this.name
+        return `${acol}${apie}`
+      }
+      getImagePath(){
+        let acol = this.color === "white" ? "W": "B"
+        let apie = this.name
+        return `pieceImages/${acol}${apie}.jpeg`
+      }
+      getNumericPos(alphaPos){
+        let lis = ["A", "B", "C", "D", "E", "F", "G", "H"]
+        let pos1 = lis.indexOf(alphaPos[0])
+        let pos2 = 7 - Number(alphaPos[1])
+        res =  [pos1, pos2]
+        return res
+      }
+      numToAlpha(num){
+        let lis = ["A","B","C","D","E","F","G","H"]
+        let pos1 = lis[num[0]]
+        let pos2 = 7 - Number(num[1])
+        res = [pos1, pos2].join("")
+        // console.log(pos2)
+        return res
+      }
+      getPiece(board, alphanum){
+        for (let i=0; i<board.length; i++){
+          if (board[i][0] === alphanum){
+            let res = board[i][1]
+            return res
+          }
+        }
+      }
+      getMoves(board, direction, numpos){
+        let moveList = []
+        for (let i=0; i<this.direction.length; i++){
+          for (let j=1; j<this.moveRange+1; j++){
+            let dir = this.direction[i]
+            // console.log(dir)
+            let val1 = dir[0] * j
+            let val2 = dir[1] * j
+            let move = [numpos[0] + val1, numpos[1] + val2]
+            if ((numpos[0] + val1 < 8) && (numpos[0] + val1 > -1) && (numpos[1] + val2 < 8) && (numpos[1] + val2 > -1)){
+              // console.log(move)
+              let alp = this.numToAlpha(move)
+              let piece = this.getPiece(board, alp)
+              // console.log(piece)
+              if (!piece){
+                moveList.push(move)
+              }
+              else if (piece.color === this.color){
+                break
+              }
+              else if (piece.color !== this.color){
+                moveList.push(move)
+                break
+            }
+            // else{
+            //   moveList.push(move)
+            // }
+            // if (val2 < 8) moveList.push(move)
+            // if (val2 > -1) moveList.push(move)
+            // if (val1 < 8)
+          }
+        }
+      }
+        return moveList
+      }
+
+      getAvailMoves(board, alphapos){
+        let numpos = this.getNumericPos(alphapos)
+        let moveList = []
+        let availMoves = this.getMoves(board, this.direction, numpos)
+        return availMoves
+      }
+    }
+
+    class King extends Piece{
+      firstmoved = false
+      constructor(name, color){
+        super(name, color)
+        this.direction = [[0,-1], [0,1], [1,0], [-1,0], [1,1], [-1,1], [-1,-1], [1,-1]]
+        this.moveRange = 1
+      }
+      getKingAPosition(board){
+        for (let i=0; i<board.length; i++){
+          let rec = board[i]
+          if ((rec[1].name === "K") && (rec[1].color === this.color)){
+            return rec[0]
+          }
+        }
+      }
+      getPathToRook(board, dir){
+        let pathDir = dir === "right" ? this.direction[2] : this.direction[3]
+        let rookPos = null
+        if (this.color === "white"){
+          rookPos = dir === "right" ? [7,7] : [0, 7]
+        }
+        else{
+          rookPos = dir === "right" ? [7,0] : [0, 0]
+        }
+
+        let counter = 1
+        let path = []
+        let myPos = this.getNumericPos(this.getKingAPosition(board, this.color))
+        // console.log(myPos[0] + pathDir[0] * 1, myPos[1] + pathDir[1] * 1)
+        while (true){
+          let numpos = [myPos[0] + pathDir[0] * counter, myPos[1] + pathDir[1] * counter]
+          if (numpos.toString() === rookPos.toString()){
+            break
+          }
+          else{
+            path.push(numpos)
+            counter++
+          }
+        }
+        return path
+      }
+      isPathClear(board, pathList){
+        for (let i=0; i<pathList.length; i++){
+          let pos = pathList[i]
+          let apos = this.numToAlpha(pos)
+          let piece = this.getPiece(board, apos)
+          if (piece){
+            return false
+          }
+        }
+        return true
+      }
+      getMoves(board, direction, numpos){
+        let moveList = []
+        for (let i=0; i<this.direction.length; i++){
+          for (let j=1; j<this.moveRange+1; j++){
+            let dir = this.direction[i]
+            // console.log(dir)
+            let val1 = dir[0] * j
+            let val2 = dir[1] * j
+            let move = [numpos[0] + val1, numpos[1] + val2]
+            if ((numpos[0] + val1 < 8) && (numpos[0] + val1 > -1) && (numpos[1] + val2 < 8) && (numpos[1] + val2 > -1)){
+              // console.log(move)
+              let alp = this.numToAlpha(move)
+              let piece = this.getPiece(board, alp)
+              // console.log(piece)
+              if (!piece){
+                moveList.push(move)
+              }
+              else if (piece.color === this.color){
+                break
+              }
+              else if (piece.color !== this.color){
+                moveList.push(move)
+                break
+            }
+            // else{
+            //   moveList.push(move)
+            // }
+            // if (val2 < 8) moveList.push(move)
+            // if (val2 > -1) moveList.push(move)
+            // if (val1 < 8)
+          }
+        }
+      }
+
+      if (!this.firstmoved){
+        let rightRookPath = this.getPathToRook(board, "right")
+        let leftRookPath = this.getPathToRook(board, "left")
+        if (this.isPathClear(board, rightRookPath)){
+          for(let i=0; i<rightRookPath.length; i++){
+            moveList.push(rightRookPath[i])
+          }
+        }
+        if (this.isPathClear(board, leftRookPath)){
+          let leftRookPathMod = leftRookPath.slice(0, leftRookPath.length - 1)
+          for(let i=0; i<leftRookPathMod.length; i++){
+            moveList.push(leftRookPathMod[i])
+          }
+        }
+      }
+
+        return moveList
+      }
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+
+    class Queen extends Piece{
+      constructor(name, color){
+        super(name, color)
+        this.direction = [[0,-1], [0,1], [1,0], [-1,0], [1,1], [-1,1], [-1,-1], [1,-1]]
+        this.moveRange = 8
+      }
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+
+    class Knight extends Piece{
+      constructor(name, color){
+        super(name, color)
+        // this.direction = [[0,-1], [0,1][1,0],[-1,0]]
+        // this.moveRange = 1
+      }
+
+      getAvailMoves(board, alphapos){
+        let numpos = this.getNumericPos(alphapos)
+        let moveList = []
+        moveList = [
+          [numpos[0] + 2, numpos[1] + 1],
+          [numpos[0] + 2, numpos[1] - 1],
+          [numpos[0] - 2, numpos[1] + 1],
+          [numpos[0] - 2, numpos[1] - 1],
+          [numpos[0] + 1, numpos[1] + 2],
+          [numpos[0] - 1, numpos[1] + 2],
+          [numpos[0] + 1, numpos[1] - 2],
+          [numpos[0] - 1, numpos[1] - 2],
+        ]
+        let availMoves = []
+        for (let i=0; i<moveList.length; i++){
+          let mov = moveList[i]
+          if((mov[0] < 8) && (mov[0] > -1) && (mov[1] < 8) && (mov[1] > -1)){
+            availMoves.push(mov)
+          }
+        }
+        // let availMoves = this.getMoves(this.direction, numpos)
+        return availMoves
+      }
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+    class Bishop extends Piece{
+      constructor(name, color){
+        super(name, color)
+        this.direction = [[1,1], [-1,1], [-1,-1], [1,-1]]
+        this.moveRange = 8
+      }
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+    class Rook extends Piece{
+      constructor(name, color){
+        super(name, color)
+        // if (color === "white"){
+          this.direction = [[0,-1], [0,1], [1,0], [-1,0]]
+          this.moveRange = 8
+        // }
+
+      }
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+
+    class Pawn extends Piece{
+      moveRange = 1
+      firstmoved = false
+      constructor(name, color){
+        super(name, color)
+        if (color === "white"){
+          this.direction = [[0,-1]]
+          this.sign = "-"
+        }
+        else if (this.color === "black"){
+          this.direction = [[0,1]]
+          this.sign = "+"
+        }
+
+        // this.direction = [0,1]
+      }
+
+      // getMoves(board, direction, numpos){
+      //   let moveList = []
+      //   if (!this.firstmoved){
+      //     let range = 2
+      //     for (let i=0; i<direction.length; i++){
+      //       for (let j=1; j<range+1; j++){
+      //         let dir = direction[i]
+      //         // console.log(dir)
+      //         let val1 = dir[0] * j
+      //         let val2 = dir[1] * j
+      //         let move = [numpos[0] + val1, numpos[1] + val2]
+      //         moveList.push(move)
+      //       }
+      //     }
+      //     return moveList
+      //   }
+      //   else{
+      //     let range = 1
+      //     for (let i=0; i<direction.length; i++){
+      //       for (let j=1; j<range+1; j++){
+      //         let dir = direction[i]
+      //         let val1 = dir[0] * j
+      //         let val2 = dir[1] * j
+      //         let move = [numpos[0] + val1, numpos[1] + val2]
+      //         moveList.push(move)
+      //       }
+      //     }
+      //     return moveList
+      //   }
+      // }
+
+      getAvailMoves(board, alphapos){
+        let numpos = this.getNumericPos(alphapos)
+        let moveList = []
+        if(!this.firstmoved){
+          let pos = [numpos[0], eval(`numpos[1] ${this.sign} 2`)]
+          let alpha = this.numToAlpha(pos)
+          let piece = this.getPiece(board, alpha)
+          if(!piece){
+            let pos2 = [numpos[0], eval(`numpos[1] ${this.sign} 1`)]
+            let alpha2 = this.numToAlpha(pos2)
+            let piece2 = this.getPiece(board, alpha2)
+            if(!piece2){
+            moveList.push(pos)
+          }
+          // this.firstmoved = true
+        }
+      }
+        let pos = [numpos[0], eval(`numpos[1] ${this.sign} 1`)]
+        let alpha = this.numToAlpha(pos)
+        let piece = this.getPiece(board, alpha)
+        if(!piece){
+          moveList.push(pos)
+        }
+        let leftDig = [numpos[0] - 1, eval(`numpos[1] ${this.sign} 1`)]
+        let rightDig = [numpos[0] + 1, eval(`numpos[1] ${this.sign} 1`)]
+        let letaleft = this.numToAlpha(leftDig)
+        let letaright = this.numToAlpha(rightDig)
+        let pieceleft = this.getPiece(board, letaleft)
+        // console.log(pieceleft)
+        let pieceright = this.getPiece(board, letaright)
+        if ((pieceleft) && (pieceleft.color !== this.color)){
+          moveList.push(leftDig)
+        }
+        if ((pieceright) && (pieceright.color !== this.color)){
+          moveList.push(rightDig)
+        }
+        // let availMoves = this.getMoves(board, this.direction, numpos)
+        return moveList
+      }
+
+
+      getDetail(){
+        let pieceName = this.name
+        let pieceColor = this.color
+        console.log(`I am a ${pieceName} ${pieceColor}`)
+      }
+    }
+
+      let board = document.querySelector("div.board")
+      for (let i=0; i<8; i++){
+        let row = document.createElement("div")
+        row.setAttribute("class", "row")
+        for (let j=0; j<8; j++){
+          let cell = document.createElement("div")
+          cell.setAttribute("class", "cell")
+          row.appendChild(cell)
+        }
+        board.appendChild(row)
+      }
+      let allcells = document.querySelectorAll("div.board div.row div.cell")
+      for (let p=0; p<allcells.length; p++){
+        allcells[p].setAttribute("id", p)
+      }
+      let firstColor = null
+      let SecondColor = null
+
+      let allrows = document.querySelectorAll("div.board div.row")
+      // console.log(allcells)
+      let alternate = false
+      for (let i=0; i<allrows.length; i++){
+        let indrow = allrows[i].querySelectorAll("div.cell")
+        // console.log(indrow)
+        for (let j=0; j<indrow.length; j++){
+          if (alternate){
+            firstColor = "lightgreen"
+            secondColor = "royalblue"
+          }
+          else{
+            firstColor = "royalblue"
+            secondColor = "lightgreen"
+          }
+          let color = i % 2 === 0 ? secondColor : firstColor
+          indrow[j].style.backgroundColor = color
+          alternate = !alternate
+        }
+      }
+      // let cellImg = document.createElement("img")
+      // cellImg.setAttribute("src", "scissors.jpeg")
+      // cellImg.setAttribute("alt", "This is a scissors")
+      // cellImg.setAttribute("height", "50")
+      // cellImg.setAttribute("width", "50")
+      // allcells[0].appendChild(cellImg)
+      function getBoardPos(alphanumeric){
+        let a = alphanumeric[0]
+        let b = alphanumeric[1]
+        let y = 7 - Number(b)
+        li = ["A","B","C","D","E","F","G","H"]
+        x = li.indexOf(a)
+        counter = 0
+        foundInd = null
+        for (let i=0; i<8; i++){
+          for (let j=0; j<8; j++){
+            // console.log(`${y}${x} -- ${i}${j}`)
+            if ([i,j].toString() === [y, x].toString()){
+              foundInd = counter
+              break;
+            }
+            counter++
+          }
+          if (foundInd !== null){
+            break
+          }
+        }
+
+        return foundInd
+      }
+      function getANFID(id){
+        let counter = 0
+        let found = null
+        let lis = ["A","B","C","D","E","F","G","H"]
+        for (let i=0; i<8; i++){
+          for (let j=0; j<8; j++){
+            if (counter === id){
+              found =  [i, j]
+              break
+            }
+            counter++
+          }
+          if (found !== null){
+            break
+          }
+        }
+        // console.log(found)
+        res = [lis[found[1]], 7 - found[0]]
+        return res
+      }
+
+      function numToAlpha(num){
+        let lis = ["A","B","C","D","E","F","G","H"]
+        pos1 = lis[num[0]]
+        pos2 = 7 - Number(num[1])
+        res = [pos1, pos2].join("")
+        // console.log(pos2)
+        return res
+      }
+
+      function getAllMoveIndex(pieceMoves){
+        let res = []
+        for (let i=0; i<pieceMoves.length; i++){
+          let alpha = numToAlpha(pieceMoves[i])
+          let boardpos = getBoardPos(alpha)
+          res.push(boardpos)
+        }
+        return res
+      }
+
+      // console.log(getAllMoveIndex([[5,4], [5,5]]))
+
+      initPos = [["A7", "BR"],
+                ["B7", "BN"],
+                ["C7", "BB"],
+                ["D7", "BQ"],
+                ["E7", "BK"],
+                ["F7", "BB"],
+                ["G7", "BN"],
+                ["H7", "BR"],
+                ["A6", "BP"],
+                ["B6", "BP"],
+                ["C6", "BP"],
+                ["D6", "BP"],
+                ["E6", "BP"],
+                ["F6", "BP"],
+                ["G6", "BP"],
+                ["H6", "BP"],
+
+                ["A0", "WR"],
+                ["B0", "WN"],
+                ["C0", "WB"],
+                ["D0", "WQ"],
+                ["E0", "WK"],
+                ["F0", "WB"],
+                ["G0", "WN"],
+                ["H0", "WR"],
+                ["A1", "WP"],
+                ["B1", "WP"],
+                ["C1", "WP"],
+                ["D1", "WP"],
+                ["E1", "WP"],
+                ["F1", "WP"],
+                ["G1", "WP"],
+                ["H1", "WP"],
+      ]
+
+      currentPos = initPos
+
+      function createPiece2(pieceName, color){
+        shortMap = {
+          K: "King",
+          Q: "Queen",
+          P: "Pawn",
+          N: "Knight",
+          R: "Rook",
+          B: "Bishop"
+        }
+        // console.log(shortMap[pieceName])
+        // new King("K","white")
+        return eval(`new ${shortMap[pieceName]}('${pieceName}', '${color}')`)
+      }
+
+      // console.log(createPiece2("K", "white"))
+
+      function createPiece(pieceName, color){
+        piecePath = `pieceImage/${[pieceName]}_${color}`
+        pcolor = color === "white" ? "W" : "B"
+        return {
+          availMoves: [],
+          abbr: `${pcolor}${pieceName}`,
+          pname: pieceName,
+          pcolor: color,
+          pimage: piecePath
+        }
+      }
+
+      function getPiece(board, alphanum){
+        for (let i=0; i<board.length; i++){
+          if (board[i][0] === alphanum){
+            res = board[i][1]
+            return res
+          }
+        }
+      }
+
+      function getmifid(boardData, id){
+        let AlphaNumericPos = getANFID(id)
+        let anp = AlphaNumericPos.join("")
+        let piece = getPiece(boardData, anp)
+        // console.log(boardData)
+        let pieceMoves = piece.getAvailMoves(boardData, anp)
+        let moveIndex = getAllMoveIndex(pieceMoves)
+        return moveIndex
+      }
+
+      function drawHighlight(moveIndex){
+        // console.log("wht is going oon")
+        for (let i=0; i<moveIndex.length; i++){
+          let ind = moveIndex[i]
+          // console.log("the current index is " + ind)
+          allcells[ind].style.border = "3px solid blue"
+        }
+      }
+
+      function resetHighlight(moveIndex){
+        for (let i=0; i<moveIndex.length; i++){
+          let ind = moveIndex[i]
+          // console.log("the current index is " + ind)
+          allcells[ind].style.border = "none"
+        }
+
+      }
+
+      function getPartList(boardData, pos){
+        // console.log(pos)
+        for (let i=0; i<boardData.length; i++){
+          let bopo = boardData[i]
+          if (bopo[0] === pos) return bopo
+        }
+      }
+      // let blackKing = createPiece("Q", "black")
+      // console.log(blackKing.abbr)
+
+      function getNumericPos(alphaPos){
+        // console.log(alphaPos)
+        let lis = ["A", "B", "C", "D", "E", "F", "G", "H"]
+        let pos1 = lis.indexOf(alphaPos[0])
+        let pos2 = 7 - Number(alphaPos[1])
+        res =  [pos1, pos2]
+        return res
+      }
+
+      function getAllColorPieces(board, color){
+        let colorabbr = color === "white" ? "W" : "B"
+        let pieceList = []
+        for (let i=0; i<board.length; i++){
+          rec = board[i]
+          if (rec[1].color === color){
+            pieceList.push(rec)
+          }
+        }
+        return pieceList
+      }
+
+      function getKingAPosition(board, color){
+        for (let i=0; i<board.length; i++){
+          let rec = board[i]
+          if ((rec[1].name === "K") && (rec[1].color === color)){
+            return rec[0]
+          }
+        }
+        // if (color == "white"){
+        //   for (let i=0; i<board.length; i++){
+        //     let rec = board[i]
+        //     if (rec[1].getAbbr() === "WK"){
+        //       return rec[0]
+        //     }
+        //   }
+        // }
+        // else{
+        //   for (let i=0; i<board.length; i++){
+        //     let rec = board[i]
+        //     if ((rec[1].name === "K") && (rec[1].color === color)){
+        //       return rec[0]
+        //     }
+        //   }
+        // }
+      }
+
+      function kingCheckTrue(moves, knp){
+        for (let j=0; j<moves.length; j++){
+          if (moves[j].toString() === knp.toString()){
+            return true
+          }
+        }
+      }
+
+      function isKingInCheck(board, playcolor, oppcolor){
+        let kingAPosition = getKingAPosition(board, oppcolor)
+        let kingNPosition = getNumericPos(kingAPosition)
+        let myPiecesRec = getAllColorPieces(board, playcolor)
+        let threatPieces = []
+        for (let i=0; i<myPiecesRec.length; i++){
+          let piece = myPiecesRec[i][1]
+          let pos = myPiecesRec[i][0]
+
+          // console.log(piece.getAvailMoves(board, pos))
+          let moves = piece.getAvailMoves(board, pos)
+          for (let j=0; j<moves.length; j++){
+            if (moves[j].toString() === kingNPosition.toString()){
+              threatPieces.push([piece, pos])
+            }
+          }
+        }
+        return threatPieces
+      }
+
+      function getDirToKIng(board, thrPiece, kinNPos){
+        // console.log("The Kiing position is " + kinNPos)
+        let kingPath = []
+        let pieceRec = thrPiece
+        let tapp = pieceRec[1]
+        let tnpp = getNumericPos(tapp)
+        let allMoves = pieceRec[0].getAvailMoves(board, pieceRec[1])
+        let allDirs = pieceRec[0].direction
+        let range = pieceRec[0].moveRange
+        for (let j=0; j<allDirs.length; j++){
+          for (let k=1; k<range; k++){
+            let val1 = allDirs[j][0] * k
+            let val2 = allDirs[j][1] * k
+            tp = [tnpp[0] + val1, tnpp[1] + val2]
+            // console.log(tp)
+            if (tp.toString() === kinNPos.toString()){
+              return allDirs[j]
+            }
+          }
+        }
+      }
+
+      function getPathToKing(board, threatPieces, kinNPos){
+        let pathList = []
+        for (let i=0; i<threatPieces.length; i++){
+          let thrPieceRec = threatPieces[i]
+          let numpos = getNumericPos(thrPieceRec[1])
+          let pirange = thrPieceRec[0].moveRange
+          let kingDirection = getDirToKIng(board, thrPieceRec, kinNPos)
+          for (let j=1; j<pirange; j++){
+            let val1 = kingDirection[0] * j
+            let val2 = kingDirection[1] * j
+            let pos = [numpos[0] + val1, numpos[1] + val2]
+            if ((numpos[0] + val1 < 8) && (numpos[0] + val1 > -1) && (numpos[1] + val2 < 8) && (numpos[1] + val2 > -1)){
+              if (pos.toString() === kinNPos.toString()){
+                return pathList
+              }
+              else{
+                pathList.push(pos)
+              }
+          }
+        }
+      }
+      // pathList = pathList.filter(pos => pos.toString() !== kinNpos.toString())
+      // console.log(pathList)
+      // return pathList
+    }
+
+    function removeKing(pieceRecs){
+      let kingRec = null
+      // console.log(pieceRecs)
+      for (let i=0; i<pieceRecs.length; i++){
+        let pieceRec = pieceRecs[i]
+        if(pieceRec[1].name === "K"){
+          kingRec = pieceRec
+          break
+        }
+      }
+      let filtRecs = pieceRecs.filter(p => p.toString() !== kingRec.toString())
+      return filtRecs
+    }
+
+      function checkPieceBlockState(board, mycolor, oppcolor, threatPieces){
+        let kingAPosition = getKingAPosition(board, oppcolor)
+        let kingNPosition = getNumericPos(kingAPosition)
+        let oppPieceRec = getAllColorPieces(board, oppcolor)
+        oppPieceRec = removeKing(oppPieceRec)
+        // console.log(oppPieceRec)
+        let kingPath = getPathToKing(board, threatPieces, kingNPosition)
+        console.log(kingPath)
+        // console.log("king path above")
+        if (!kingPath){
+          return false
+        }
+        else{
+          for (let i=0; i<oppPieceRec.length; i++){
+            let piece = oppPieceRec[i][1]
+            let pos = oppPieceRec[i][0]
+            pmoves = piece.getAvailMoves(board, pos)
+            for (let j=0; j<pmoves.length; j++){
+              let mov = pmoves[j]
+              for (let k=0; k<kingPath.length; k++){
+                // console.log(kingPath[k].toString() + " -- " + mov.toString())
+                if (kingPath[k].toString() === mov.toString()) {
+                  return true
+                }
+              }
+            }
+          }
+          return false
+        }
+    }
+
+      function getKing(board, color){
+        for (let i=0; i<board.length; i++){
+          let rec = board[i]
+          if ((rec[1].name === "K") && (rec[1].color === color)){
+            return rec
+          }
+      }
+    }
+
+
+      function checkKingEscape(board, mycolor, oppcolor){
+        let myPiecesRec = getAllColorPieces(board, mycolor)
+        let oppKingRec = getKing(board, oppcolor)
+        // console.log(oppKingRec)
+        let oppKing = oppKingRec[1]
+        let oppKingPos = oppKingRec[0]
+        let resList = []
+        // console.log(piece.getAvailMoves(board, pos))
+
+        let kingMoves = oppKing.getAvailMoves(board, oppKingPos)
+        for (let j=0; j<kingMoves.length; j++){
+          let kmov = kingMoves[j]
+          // console.log("kmov is " + kmov)
+          for (let k=0; k<myPiecesRec.length; k++){
+            let mpiece = myPiecesRec[k][1]
+            let mpiecePos = myPiecesRec[k][0]
+            let moves = mpiece.getAvailMoves(board, mpiecePos)
+            // console.log(moves)
+            for (let l=0; l<moves.length; l++){
+              let mov = moves[l]
+              // console.log("Testing color moves = " + mov)
+              if (kmov.toString() === mov.toString()){
+                resList.push(true)
+              }
+            }
+          }
+        }
+        // console.log("resList length is = " + resList.length + " KingMoves length = " + kingMoves.length)
+        if (resList.length >= kingMoves.length){
+          return false
+        }
+        else{
+          return true
+        }
+      }
+
+      function threatPieceThreat(board, threatPieces, oppcolor){
+        let oppPieceRec = getAllColorPieces(board, oppcolor)
+        for (let i=0; i<threatPieces.length; i++){
+          let tpieceRec = threatPieces[i]
+          let tpieceAPos = tpieceRec[1]
+          let tpieceNpos = getNumericPos(tpieceAPos)
+          let tpiece = tpieceRec[0]
+          for (let s=0; s<oppPieceRec.length; s++){
+            let oppPiece = oppPieceRec[s][1]
+            let opp = oppPieceRec[s][0]
+            let moves = oppPiece.getAvailMoves(board, opp)
+            for (let j=0; j<moves.length; j++){
+              let mov = moves[j]
+              if (mov.toString() === tpieceNpos.toString()){
+                return true
+              }
+            }
+          }
+        }
+        return false
+      }
+
+      function isGameWon(board, mycolor, oppcolor, threatPieces){
+        isThreatPieceInThreat = threatPieceThreat(board, threatPieces, oppcolor)
+        canKingEscape = checkKingEscape(board, mycolor, oppcolor)
+        pieceBlockState = checkPieceBlockState(board, mycolor, oppcolor, threatPieces)
+        console.log("isThreatPieceThreat = " + isThreatPieceInThreat + " canKingEscape = " + canKingEscape + " pieceBlockState = " + pieceBlockState)
+        // if (isThreatPieceInThreat){
+        //   console.log("The Threat piece is in threat")
+        // }
+        // else{
+        //   console.log("The Threat Piece is NOT in threat")
+        // }
+        if ((isThreatPieceInThreat) || (canKingEscape) || (pieceBlockState)){
+          // console.log("The game has not been won yet")
+          return false
+        }
+        else{
+          return true
+        }
+      }
+
+
+      function getRookPosition(boardSpaceDifference, initRec){
+        let rookPosition = null
+        let resObj = {}
+        let ApositionToPlay = initRec[0]
+        let npositionToPlay = getNumericPos(ApositionToPlay)
+        if (boardSpaceDifference === -2){
+          npositionToPlay = [npositionToPlay[0] + 1, npositionToPlay[1]]
+          resObj.posToPlay = npositionToPlay
+          if(initRec[1].color === "white"){
+            rookPosition = [7,7]
+            resObj.rookPosition = rookPosition
+          }
+          else{
+            rookPosition = [7, 0]
+            resObj.rookPosition = rookPosition
+          }
+        }
+        else if (boardSpaceDifference === 2){
+          npositionToPlay = [npositionToPlay[0] - 1, npositionToPlay[1]]
+          resObj.posToPlay = npositionToPlay
+          if(initRec[1].color === "white"){
+            rookPosition = [0,7]
+            resObj.rookPosition = rookPosition
+          }
+          else{
+            rookPosition = [0, 0]
+            resObj.rookPosition = rookPosition
+          }
+        }
+        return resObj
+      }
+
+      function createPieceImage(path, abbr){
+        let pieImage = document.createElement("img")
+        pieImage.setAttribute("width", 50)
+        pieImage.setAttribute("height", 50)
+        pieImage.setAttribute("src", path)
+        pieImage.setAttribute("alt", abbr)
+        return pieImage
+      }
+
+      function initBoard(initPos){
+        let boardData = []
+        for (let i=0; i<initPos.length; i++){
+          let row = initPos[i]
+          let pos = row[0]
+          let piece = row[1]
+          let pieceName = piece[1]
+          let pieceColor = piece[0] === "B" ? "black" : "white"
+          let createdPiece = createPiece2(pieceName, pieceColor)
+          boardData.push([pos, createdPiece])
+        }
+        return boardData
+      }
+      let boardData = initBoard(initPos)
+      // console.log(getKing(boardData, "black"))
+      // function getPathToKIng(board, threatPieces, kinNPos){
+      // console.log(getPathToKing(board, [[]]))
+      // console.log(getPartList(boardData, "A7"))
+
+      for (let k=0; k<initPos.length; k++){
+        let pos = boardData[k][0]
+        let piece = boardData[k][1]
+        let boardpos = getBoardPos(pos)
+
+        let pieImage = createPieceImage(piece.getImagePath(), piece.getAbbr())
+        // allcells[boardpos].textContent = piece.getAbbr()
+        allcells[boardpos].appendChild(pieImage)
+      }
+      let firstSelection  = null
+      let piece = null
+      let pieceMoves = null
+      let moveIndex = null
+      turn  = "white"
+      let blackKingInCheck = false
+      let whiteKingInCheck = false
+
+      for(let z=0; z<allcells.length; z++){
+        allcells[z].onclick = function(event){
+          if (firstSelection === null){
+            this.style.border = "2px solid red"
+            let cellId = Number(this.getAttribute("id"))
+            let AlphaNumericPos = getANFID(cellId)
+            let anp = AlphaNumericPos.join("")
+            // let pieceData = boardData[cellId]
+            // let piece = pieceData[1]
+            piece = getPiece(boardData, anp)
+            if (piece){
+              firstSelection = this
+              pieceMoves = piece.getAvailMoves(boardData, anp)
+              moveIndex = getAllMoveIndex(pieceMoves)
+              // console.log(piece)
+              // console.log(pieceMoves)
+              // console.log("after pieceMoves")
+              // moveIndex = moveIndex.filter(mi => mi !== null)
+              // console.log(moveIndex)
+              drawHighlight(moveIndex)
+            }
+            else{
+              this.style.border = "none"
+              console.log("Select your Piece")
+            }
+
+          }
+          else{
+            let cellId2 = Number(this.getAttribute("id"))
+            let AlphaNumericPos2 = getANFID(cellId2)
+            let anp2 = AlphaNumericPos2.join("")
+            let piece2 = getPiece(boardData, anp2)
+            // let pieceMoves2 = piece2.getAvailMoves(anp2)
+            // let moveIndex2 = getAllMoveIndex(pieceMoves2)
+            // let altColor = piece2.color === "white" ? "black": "white"
+            // console.log("first we are here")
+            if (piece2){
+              firstPie = getPiece(boardData, getANFID(Number(firstSelection.getAttribute("id"))).join(""))
+              if (piece2.color === firstPie.color){
+                // console.log("we are here")
+                let tempFirst = getPiece(boardData, getANFID(Number(firstSelection.getAttribute("id"))).join(""))
+                let tempSecond = getPiece(boardData, getANFID(Number(this.getAttribute("id"))).join(""))
+                let moveIndex = getmifid(boardData, Number(firstSelection.getAttribute("id")))
+                if(tempFirst.name === tempSecond.name){
+                  firstSelection.style.border = ""
+                  firstSelection = null
+                  resetHighlight(moveIndex)
+                }
+                else{
+                  firstSelection.style.border = "none"
+                  moveIndex = getmifid(boardData, Number(firstSelection.getAttribute("id")))
+                  moveIndex = moveIndex.filter(mi => mi !== null)
+
+                  firstSelection = this
+                  firstSelection.style.border = "2px solid red"
+                  // pieceMoves = piece.getAvailMoves(anp)
+                  // moveIndex = getAllMoveIndex(pieceMoves)
+                  let moveIndex2 = getmifid(boardData, Number(this.getAttribute("id")))
+                  moveIndex2 = moveIndex2.filter(mi => mi !== null)
+                  resetHighlight(moveIndex)
+                  drawHighlight(moveIndex2)
+                }
+              }
+              // else if (piece.color !== getPiece(boardData, anp2).color){
+              //   console.log("you clicked on the opponent's piece")
+              // }
+              else{
+                // alert("cant play like that")
+                // allcells[cellInd].style.border = "none"
+                // resetHighlight()
+                let moveInd = getmifid(boardData, Number(firstSelection.getAttribute("id")))
+                let secondSel = Number(this.getAttribute("id"))
+                // console.log(firstSelection.getAttribute("id") + this.getAttribute("id"))
+
+                  if (moveInd.indexOf(secondSel) !== -1){
+                  let dest = getANFID(secondSel).join("")
+                  let init = getANFID(Number(firstSelection.getAttribute("id"))).join("")
+                  let initRec = getPartList(boardData, init)
+                  let destRec = getPartList(boardData, dest)
+                  let newRec = [dest, initRec[1]]
+                  // console.log("the records are")
+                  // console.log(initRec)
+                  // console.log(newRec)
+                  let tempPiece = getPiece(boardData, getANFID(Number(firstSelection.getAttribute("id"))).join(""))
+                  // if (tempPiece.name === "P"){
+                  //
+                  //   tempPiece.firstmoved = true
+                  // }
+                  // else if (temPiece.name === "K"){
+                  //   tempPiece.firstmoved = true
+                  // }
+
+                  // start promotion code
+
+                  if (tempPiece.name === "P"){
+                    if (initRec[1].color === "white"){
+                      let limit = ["A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7"]
+                      if (limit.indexOf(dest) !== -1){
+                        promotionPrompt.style.display = "block"
+                        let firstLetter = null
+                        let secondSpot = this
+                        let firstSpot = firstSelection
+                          for (let prind=0; prind<promotionOptions.length; prind++){
+                            promotionOptions[prind].onclick = function(event){
+                              promotionPrompt.style.display = "none"
+                              promotionChanged = true
+                            if (this.textContent === "Knight"){
+                                firstLetter = "N"
+                            }
+                            else{
+                                firstLetter = this.textContent[0]
+                            }
+                            let promotionPiece = createPiece2(firstLetter, initRec[1].color)
+                            newRec2 = [dest, promotionPiece]
+                            // console.log(newRec)
+                            // start code for promotion
+                            // secondSpot.textContent = newRec2[1].getAbbr()
+                            let pieceImg = createPieceImage(newRec2[1].getImagePath(), newRec2[1].getAbbr())
+                            secondSpot.textContent = ""
+                            secondSpot.appendChild(pieceImg)
+                            // console.log(secondSpot)
+                            // console.log(firstSpot)
+                            firstSpot.textContent = ""
+                            firstSpot.style.border = "none"
+                            resetHighlight(moveInd)
+                            // firstSelection = null
+                            boardData = boardData.filter(rec => rec.toString() !== newRec.toString())
+                            // boardData = boardData.filter(rec => rec.toString() !== )
+                            boardData.push(newRec2)
+                            let mycolor = ""
+                            let oppcolor = ""
+                            if (turn === "white"){
+                              mycolor = "white"
+                              oppcolor = "black"
+                            }
+                            else{
+                              mycolor = "black"
+                              oppcolor = "white"
+                            }
+                            // end code for promotion
+                        }
+                      }
+                  }
+                }
+
+                else{
+                  let limit = ["A0", "B0", "C0", "D0", "E0", "F0", "G0", "H0"]
+                  if (limit.indexOf(dest) !== -1){
+                    promotionPrompt.style.display = "block"
+                    let firstLetter = null
+                    let secondSpot = this
+                    let firstSpot = firstSelection
+                      for (let prind=0; prind<promotionOptions.length; prind++){
+                        promotionOptions[prind].onclick = function(event){
+                          promotionPrompt.style.display = "none"
+                          promotionChanged = true
+                        if (this.textContent === "Knight"){
+                            firstLetter = "N"
+                        }
+                        else{
+                            firstLetter = this.textContent[0]
+                        }
+                        let promotionPiece = createPiece2(firstLetter, initRec[1].color)
+                        newRec2 = [dest, promotionPiece]
+                        // console.log(newRec)
+                        // start code for promotion
+                        let pieceImg = createPieceImage(newRec2[1].getImagePath(), newRec2[1].getAbbr())
+                        secondSpot.textContent = ""
+                        secondSpot.appendChild(pieceImg)
+                        // secondSpot.textContent = newRec2[1].getAbbr()
+                        // console.log(secondSpot)
+                        // console.log(firstSpot)
+                        firstSpot.textContent = ""
+                        firstSpot.style.border = "none"
+                        resetHighlight(moveInd)
+                        // firstSelection = null
+                        boardData = boardData.filter(rec => rec.toString() !== newRec.toString())
+                        // boardData = boardData.filter(rec => rec.toString() !== )
+                        boardData.push(newRec2)
+                        let mycolor = ""
+                        let oppcolor = ""
+                        if (turn === "white"){
+                          mycolor = "white"
+                          oppcolor = "black"
+                        }
+                        else{
+                          mycolor = "black"
+                          oppcolor = "white"
+                        }
+                        // end code for promotion
+                    }
+                  }
+                  }
+                }
+                tempPiece.firstmoved = true
+              }
+
+                  // end promotion code
+                  // let temp = tempPiece.getAbbr()
+                  // this.textContent = temp
+                  this.textContent = ""
+                  let pieceImg = createPieceImage(tempPiece.getImagePath(), tempPiece.getAbbr())
+                  this.appendChild(pieceImg)
+                  firstSelection.textContent = ""
+                  firstSelection.style.border = "none"
+                  resetHighlight(moveInd)
+                  firstSelection = null
+                  boardData = boardData.filter(rec => rec.toString() !== initRec.toString())
+                  boardData = boardData.filter(rec => rec.toString() !== destRec.toString())
+                  boardData.push(newRec)
+                  let mycolor = ""
+                  let oppcolor = ""
+                  if (turn === "white"){
+                    mycolor = "white"
+                    oppcolor = "black"
+                  }
+                  else{
+                    mycolor = "black"
+                    oppcolor = "white"
+                  }
+                  let kingCheckPieces = isKingInCheck(boardData, mycolor, oppcolor)
+                  if (kingCheckPieces.length !== 0){
+                    alert(`PLAYER ${oppcolor} YOUR KING IS IN CHECK`)
+                    let gameWon = isGameWon(boardData, mycolor, oppcolor, kingCheckPieces)
+                    if (gameWon){
+                      alert(`Player ${turn} Wins the Game`)
+                    }
+
+                  }
+
+                  if (turn === "white"){
+                    headText.textContent = "Black Turn"
+                    turn = "black"
+                  }
+                  else{
+                    headText.textContent = "White Turn"
+                    turn = "white"
+                  }
+                }
+              }
+            }
+            else{
+              let moveInd = getmifid(boardData, Number(firstSelection.getAttribute("id")))
+              let secondSel = Number(this.getAttribute("id"))
+              // console.log(firstSelection.getAttribute("id") + this.getAttribute("id"))
+              if (moveInd.indexOf(secondSel) !== -1){
+                console.log("you have now clicked on a valid position on second click")
+                let dest = getANFID(secondSel).join("")
+                let init = getANFID(Number(firstSelection.getAttribute("id"))).join("")
+                let initRec = getPartList(boardData, init)
+                let newRec = [dest, initRec[1]]
+                // console.log("the records are")
+                // console.log(initRec)
+                // console.log(newRec)
+                let tempPiece = getPiece(boardData, getANFID(Number(firstSelection.getAttribute("id"))).join(""))
+                // let promotionChanged = false
+                if (tempPiece.name === "P"){
+                  if (initRec[1].color === "white"){
+                    let limit = ["A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7"]
+                    if (limit.indexOf(dest) !== -1){
+                      promotionPrompt.style.display = "block"
+                      let firstLetter = null
+                      let secondSpot = this
+                      let firstSpot = firstSelection
+                        for (let prind=0; prind<promotionOptions.length; prind++){
+                          promotionOptions[prind].onclick = function(event){
+                            promotionPrompt.style.display = "none"
+                            promotionChanged = true
+                          if (this.textContent === "Knight"){
+                              firstLetter = "N"
+                          }
+                          else{
+                              firstLetter = this.textContent[0]
+                          }
+                          let promotionPiece = createPiece2(firstLetter, initRec[1].color)
+                          newRec2 = [dest, promotionPiece]
+                          // console.log(newRec)
+                          // start code for promotion
+
+                          let pieceImg = createPieceImage(newRec2[1].getImagePath(), newRec2[1].getAbbr())
+                          secondSpot.textContent = ""
+                          secondSpot.appendChild(pieceImg)
+                          // console.log(secondSpot)
+                          // console.log(firstSpot)
+                          firstSpot.textContent = ""
+                          firstSpot.style.border = "none"
+                          resetHighlight(moveInd)
+                          // firstSelection = null
+                          boardData = boardData.filter(rec => rec.toString() !== newRec.toString())
+                          // boardData = boardData.filter(rec => rec.toString() !== )
+                          boardData.push(newRec2)
+                          let mycolor = ""
+                          let oppcolor = ""
+                          if (turn === "white"){
+                            mycolor = "white"
+                            oppcolor = "black"
+                          }
+                          else{
+                            mycolor = "black"
+                            oppcolor = "white"
+                          }
+                          // end code for promotion
+                      }
+                    }
+                }
+              }
+
+              else{
+                let limit = ["A0", "B0", "C0", "D0", "E0", "F0", "G0", "H0"]
+                if (limit.indexOf(dest) !== -1){
+                  promotionPrompt.style.display = "block"
+                  let firstLetter = null
+                  let secondSpot = this
+                  let firstSpot = firstSelection
+                    for (let prind=0; prind<promotionOptions.length; prind++){
+                      promotionOptions[prind].onclick = function(event){
+                        promotionPrompt.style.display = "none"
+                        promotionChanged = true
+                      if (this.textContent === "Knight"){
+                          firstLetter = "N"
+                      }
+                      else{
+                          firstLetter = this.textContent[0]
+                      }
+                      let promotionPiece = createPiece2(firstLetter, initRec[1].color)
+                      newRec2 = [dest, promotionPiece]
+                      // console.log(newRec)
+                      // start code for promotion
+                      // secondSpot.textContent = newRec2[1].getAbbr()
+                      let pieceImg = createPieceImage(newRec2[1].getImagePath(), newRec2[1].getAbbr())
+                      secondSpot.textContent = ""
+                      secondSpot.appendChild(pieceImg)
+                      // console.log(secondSpot)
+                      // console.log(firstSpot)
+                      firstSpot.textContent = ""
+                      firstSpot.style.border = "none"
+                      resetHighlight(moveInd)
+                      // firstSelection = null
+                      boardData = boardData.filter(rec => rec.toString() !== newRec.toString())
+                      // boardData = boardData.filter(rec => rec.toString() !== )
+                      boardData.push(newRec2)
+                      let mycolor = ""
+                      let oppcolor = ""
+                      if (turn === "white"){
+                        mycolor = "white"
+                        oppcolor = "black"
+                      }
+                      else{
+                        mycolor = "black"
+                        oppcolor = "white"
+                      }
+                      // end code for promotion
+                  }
+                }
+                }
+              }
+              tempPiece.firstmoved = true
+            }
+                else if (tempPiece.name === "K"){
+                  let boardSpaceDifference = Number(firstSelection.getAttribute("id")) - Number(this.getAttribute("id"))
+                  if ((boardSpaceDifference === 2) || (boardSpaceDifference === -2)){
+                    let rookObj = getRookPosition(boardSpaceDifference, initRec)
+                    let rookNPosition = rookObj.rookPosition
+                    let nrookPosToPlay = rookObj.posToPlay
+                    let arookPosToPlay = numToAlpha(nrookPosToPlay)
+                    let rookAPosition = numToAlpha(rookNPosition)
+                    let oldRookRec = getPartList(boardData, rookAPosition)
+                    let newRookRec = [arookPosToPlay, oldRookRec[1]]
+                    boardData = boardData.filter(rec => rec.toString() !== oldRookRec.toString())
+                    boardData.push(newRookRec)
+                    let newRookId = getBoardPos(arookPosToPlay)
+                    let oldRookId = getBoardPos(rookAPosition)
+                    // let box = getBoxFromId(newRookId)
+                    // allcells[newRookId].textContent = oldRookRec[1].getAbbr()
+                    let rookImg = createPieceImage(oldRookRec[1].getImagePath(), oldRookRec[1].getAbbr())
+                    allcells[newRookId].appendChild(rookImg)
+                    allcells[oldRookId].textContent = ""
+                  }
+
+                  tempPiece.firstmoved = true
+                }
+                // let temp = tempPiece.getAbbr()
+                // this.textContent = temp
+                // console.log(newRec[1].getAbbr())
+
+                // this.textContent = newRec[1].getAbbr()
+                firstSelection.textContent = ""
+                let pieceImg = createPieceImage(tempPiece.getImagePath(), tempPiece.getAbbr())
+                this.appendChild(pieceImg)
+                firstSelection.style.border = "none"
+                resetHighlight(moveInd)
+                firstSelection = null
+                boardData = boardData.filter(rec => rec.toString() !== initRec.toString())
+                boardData.push(newRec)
+                let mycolor = ""
+                let oppcolor = ""
+                if (turn === "white"){
+                  mycolor = "white"
+                  oppcolor = "black"
+                }
+                else{
+                  mycolor = "black"
+                  oppcolor = "white"
+                }
+                let kingCheckPieces = isKingInCheck(boardData, mycolor, oppcolor, dest)
+                // console.log(kingCheckState)
+                if (kingCheckPieces.length !== 0){
+                  alert(`PLAYER ${oppcolor} YOUR KING IS IN CHECK`)
+                  let gameWon = isGameWon(boardData, mycolor, oppcolor, kingCheckPieces)
+                  if (gameWon){
+                    alert(`Player ${turn} Wins the Game`)
+                  }
+                  // if (turn === "white"){
+                  //   blackKingInCheck = true
+                  //   let SkingCheckState = isKingInCheck(boardData, oppcolor, oppcolor)
+                  //   if(SkingCheckState){
+                  //     alert(`Playr ${turn} Wins the Game`)
+                  //   }
+                  // }
+                  // else{
+                  //   whiteKingInCheck = true
+                  //   let SkingCheckState = isKingInCheck(boardData, oppcolor, oppcolor)
+                  //   if(SkingCheckState){
+                  //     alert(`Playr ${turn} Wins the Game`)
+                  //   }
+                  // }
+                }
+
+                if (turn === "white"){
+                  headText.textContent = "Black Turn"
+                  turn = "black"
+                }
+                else{
+                  headText.textContent = "White Turn"
+                  turn = "white"
+                }
+              }
+              else{
+                console.log("you have now clicked on an INvalid position on second click")
+              }
+            }
+            // let blankPos = null
+            //
+          }//else for firstSelection==null ends
+        }
+      }
+
+
+    </script>
+  </body>
+</html>
