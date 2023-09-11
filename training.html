@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <style>
+      h1{
+        color: white;
+        background-color: darkgreen;
+        text-align: center;
+        font-weight: normal;
+        font-size: 30px;
+        /* cursor: not-allowed; */
+      }
+      a{
+        font-size: 20px;
+        font-family: roboto;
+      }
+      p{
+        font-size: 22px;
+        font-family: helvetica;
+      }
+      div.plain{
+        width: 96%;
+        margin: 20px auto 0;
+      }
+      div.row{
+        display: grid;
+        grid-template-columns: repeat(100, 15px);
+        grid-template-rows: 14px;
+      }
+      div.coords{
+        border: 1px solid black;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div class="plain">
+      <!-- <p> <i> Lorem ipsum dolor sit amet, consectetur adipisicing elit,
+        sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
+        sunt in culpa qui officia deserunt mollit anim id est laborum.
+        sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
+        sunt in culpa qui officia deserunt mollit anim id est laborum.</i>
+      </p> -->
+    </div>
+    <span></span>
+
+    <script>
+      // console.log("this is script section")
+      let plain = document.querySelector("div.plain")
+      for(let i=0; i<50; i++)
+      {
+        let row = document.createElement("div")
+        row.setAttribute("class", "row")
+        for (let j=0; j<100; j++){
+          let coord = document.createElement("div")
+          coord.setAttribute("class", "coords")
+          row.appendChild(coord)
+        }
+        plain.appendChild(row)
+      }
+      let allCoords = document.querySelectorAll("div.coords")
+      let counts = 0
+      let cellCount = allCoords.length
+      let yaxis = 0
+      for (let i=0; i<50; i++){
+        counts++
+        for (let j=0; j<100; j++){
+          if(counts === 5){
+            yaxis++
+            // console.log("to recordd number")
+            // allCoords[cellCount].style.backgroundColor = 'red'
+            allCoords[cellCount].textContent = yaxis
+            counts = 0
+          }
+          cellCount--
+        }
+      }
+
+      for (let i=0; i<allCoords.length; i++){
+        allCoords[i].onclick = function(event){
+          this.style.backgroundColor = "blue"
+        }
+      }
+
+      let xcount = 0
+
+
+      for (let h=0; h<50; h++){
+        for (let i=0; i<50; i++){
+
+          for (let j=0; j<100; j++){
+            // if(j === 99){
+
+
+
+              // console.log("to recordd number ")
+              // allCoords[cellCount].textContent = yaxis
+              // counts = 0
+              xcount++
+            // }
+            // cellCount--
+          }
+        }
+        // allCoords[xcount].style.backgroundColor = 'green'
+    }
+      // let lasthund = allCoords.slice(allCoords.length-100, allCoords.length)
+      // for (let i=0; i<lasthund.length; i++){
+      //   lasthund[i].style.backgroundColor = "green"
+      // }
+    </script>
+  </body>
+</html>

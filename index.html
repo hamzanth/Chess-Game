@@ -99,7 +99,7 @@
       getImagePath(){
         let acol = this.color === "white" ? "W": "B"
         let apie = this.name
-        return `pieceImages/${acol}${apie}.jpeg`
+        return `pieceImages/${acol}${apie}.png`
       }
       getNumericPos(alphaPos){
         let lis = ["A", "B", "C", "D", "E", "F", "G", "H"]
@@ -969,8 +969,8 @@
 
       function createPieceImage(path, abbr){
         let pieImage = document.createElement("img")
-        pieImage.setAttribute("width", 50)
-        pieImage.setAttribute("height", 50)
+        pieImage.setAttribute("width", 80)
+        pieImage.setAttribute("height", 80)
         pieImage.setAttribute("src", path)
         pieImage.setAttribute("alt", abbr)
         return pieImage
